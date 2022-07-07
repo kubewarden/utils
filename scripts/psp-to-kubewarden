@@ -1,0 +1,45 @@
+#!/usr/bin/env sh
+
+set -e
+
+PSP_MIGRATION_TOOL_VERSION=v1.33.351
+LOCAL_PSP_MIGRATION_TOOL_PATH=psp-migration
+HELP="false"
+
+for arg in "$@"
+do
+  case "$arg" in
+    --help)
+	    HELP="true"
+	    shift 1
+            ;;
+    esac
+done
+
+if [ "$HELP" = "true" ];
+then
+	echo ""
+	echo "This script is used to migrate the PodSecurityPolicy running in your Kubernetes cluster into Kubewarden policies."
+	echo "The available options are:"
+	echo ""
+	echo "    --help: show this help message"
+	exit 0
+fi
+
+# download the tool used to migrate PSP into Kubewarden policies
+if [ ! -x $LOCAL_PSP_MIGRATION_TOOL_PATH ] 
+then
+	curl -L -s -o psp-migration "https://github.com/appvia/psp-migration/releases/download/$PSP_MIGRATION_TOOL_VERSION/psp-migration-linux-x64" > /dev/null
+	chmod +x psp-migration
+fi
+
+# get PSP names
+PSP_LIST=$(kubectl get psp -A --no-headers | awk ' {print $1} ')
+
+# generate Kubewarden policies
+for psp in $PSP_LIST
+do
+	echo "---"
+	kubectl get PodSecurityPolicy $psp -o yaml  | ./psp-migration -e kubewarden 
+done
+
