@@ -41,7 +41,7 @@ if [[ -z "${registry}" ]]; then
     usage
     exit 1
 fi
-if [[ $help ]]; then
+if [[ -v help ]]; then
     usage
     exit 0
 fi
